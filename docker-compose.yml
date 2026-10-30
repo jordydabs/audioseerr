@@ -1,0 +1,114 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# AudioSeerr — hardened compose
+#
+# Security posture (see README "Security" section for the why):
+#   • Non-root: the image runs as the unprivileged "node" user (uid/gid 1000).
+#   • no-new-privileges: blocks setuid/privilege escalation inside the container.
+#   • cap_drop: ALL — the app binds a high port (7575) and needs no Linux caps.
+#   • read_only root filesystem + tmpfs for /tmp — only ./data is writable.
+#   • Isolated bridge network — not the shared default bridge.
+#   • Resource + pid limits and log rotation to contain runaway behaviour.
+#   • init: true gives a real PID 1 so signals/zombies are handled correctly.
+#
+# First run: the ./data bind mount must be writable by uid 1000:
+#     mkdir -p ./data && sudo chown -R 1000:1000 ./data
+# (Or switch to the named-volume option at the bottom, which Docker owns
+#  correctly for you.)
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  audioseerr:
+    build: .
+    image: audioseerr:2.10.0
+    container_name: audioseerr
+    ports:
+      - "7575:7575"
+    env_file: .env
+    environment:
+      # Production refuses to start with a sample/placeholder JWT_SECRET or
+      # ADMIN_PASS — set both in .env before the first `up`.
+      - NODE_ENV=production
+      # ── Docker secrets (recommended for production) ──────────────────────
+      # The app reads *_FILE variants of its secrets. To use Docker secrets,
+      # uncomment the three lines below AND the "secrets:" keys at the bottom,
+      # drop the matching plain vars from .env, and put each value in
+      # ./secrets/<name>. Keep them in THIS environment block — a second
+      # `environment:` key in the same service is invalid YAML and silently
+      # discards one of the two mappings.
+      #- JWT_SECRET_FILE=/run/secrets/jwt_secret
+      #- LIDARR_API_KEY_FILE=/run/secrets/lidarr_api_key
+      #- ADMIN_PASS_FILE=/run/secrets/admin_pass
+    #secrets:
+    #  - jwt_secret
+    #  - lidarr_api_key
+    #  - admin_pass
+    volumes:
+      # App data (db.json). Must be writable by uid 1000 — see note above.
+      - ./data:/app/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # lets the app reach Lidarr on the host
+
+    # ── Hardening ────────────────────────────────────────────────────────────
+    read_only: true                 # root filesystem is immutable…
+    tmpfs:
+      - /tmp                         # …except an in-memory scratch dir
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    init: true
+    # On SIGTERM the app gives in-flight requests up to 5s to finish. Left unset,
+    # compose on this install allows ONE second before SIGKILL, which cut that short.
+    stop_grace_period: 15s
+    restart: unless-stopped
+
+    # ── Resource guards ──────────────────────────────────────────────────────
+    # NOTE ON WHAT DOCKER DESKTOP SHOWS: this is usually the only container in a
+    # *arr stack with a memory limit, and Docker Desktop reports memory as a
+    # PERCENTAGE OF THE LIMIT. So AudioSeerr can read ~17% while an unlimited
+    # neighbour using 8x the actual memory reads ~5% (it is measured against the
+    # whole host). Measured on a 1,513-artist library: AudioSeerr rests at
+    # ~65 MB, which is among the lowest in the stack. The high percentage is the
+    # limit working, not a leak.
+    #
+    # 384m, not 256m: refreshing the library buffers and parses Lidarr's full
+    # artist list (~17 MB of JSON for a large library), which transiently costs
+    # ~85 MB on top of the ~45 MB baseline — a measured peak around 170 MB.
+    # 256m left too little headroom for that. With LIDARR_LIBRARY_TTL_MS now
+    # defaulting to 45 minutes, that spike happens ~9x less often than it did.
+    mem_limit: 384m
+    cpus: 0.75
+    pids_limit: 128
+
+    # ── Log rotation (prevents unbounded disk use) ───────────────────────────
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    networks:
+      - audioseerr-net
+
+networks:
+  audioseerr-net:
+    driver: bridge
+
+# secrets:
+#   jwt_secret:
+#     file: ./secrets/jwt_secret
+#   lidarr_api_key:
+#     file: ./secrets/lidarr_api_key
+#   admin_pass:
+#     file: ./secrets/admin_pass
+
+# ── Alternative: Docker-managed named volume (no host chown needed) ──────────
+# Replace the bind mount above with:
+#     volumes:
+#       - audioseerr-data:/app/data
+# and add at the bottom:
+# volumes:
+#   audioseerr-data:
+# To migrate existing data into the named volume once:
+#   docker run --rm -v "$PWD/data:/from" -v audioseerr_audioseerr-data:/to \
+#     alpine sh -c "cp -a /from/. /to/"

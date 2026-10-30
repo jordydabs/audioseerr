@@ -1,0 +1,119 @@
+name: Release
+
+# Publishes a GitHub release from the notes in docs/releases/<tag>.md.
+#
+#   - Push a version tag such as v2.11.0 and its release is created (or updated).
+#   - Or run it by hand: Actions -> Release -> Run workflow. If the tag doesn't exist
+#     yet it is created from the commit of the branch you run the workflow on.
+#     "replace_tag" repairs a release that was published under the wrong tag name:
+#     its release is moved onto <tag> and the mistaken tag is deleted.
+#
+# The first line of the notes file ("# Title") becomes the release title and the rest
+# the description. With no notes file, GitHub's generated notes are used instead.
+# Uses only the preinstalled gh CLI and the repository's own GITHUB_TOKEN.
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to publish, e.g. v2.10.0"
+        required: true
+        type: string
+      replace_tag:
+        description: "Optional: a mistakenly named tag whose release is moved onto <tag> (that tag is then deleted)"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      SHA: ${{ github.sha }}
+      REF_NAME: ${{ github.ref_name }}
+      INPUT_TAG: ${{ inputs.tag }}
+      REPLACE_TAG: ${{ inputs.replace_tag }}
+    steps:
+      - name: Publish release
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TAG="${INPUT_TAG:-$REF_NAME}"
+          REPLACE="${REPLACE_TAG:-}"
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::'$TAG' is not a version tag like v1.2.3"
+            exit 1
+          fi
+          if [ -n "$REPLACE" ] && { ! [[ "$REPLACE" =~ ^[0-9A-Za-z._-]+$ ]] || [ "$REPLACE" = "$TAG" ]; }; then
+            echo "::error::replace_tag must be a plain tag name that differs from the new tag"
+            exit 1
+          fi
+
+          # --- release notes: first line is the title, the rest the body ---------
+          notes="docs/releases/${TAG}.md"
+          if gh api -H "Accept: application/vnd.github.raw" "repos/${REPO}/contents/${notes}?ref=${SHA}" > notes.md 2>/dev/null; then
+            title="$(head -n 1 notes.md | sed -E 's/^#+[[:space:]]*//')"
+            tail -n +2 notes.md | sed '/./,$!d' > body.md
+            have_notes=1
+          else
+            echo "::warning::${notes} not found at ${SHA:0:7}; using GitHub's generated notes"
+            title=""
+            have_notes=0
+          fi
+          [ -n "$title" ] || title="AudioSeerr ${TAG}"
+
+          # --- the tag -----------------------------------------------------------
+          if ! gh api "repos/${REPO}/git/ref/tags/${TAG}" > /dev/null 2>&1; then
+            gh api "repos/${REPO}/git/refs" -f "ref=refs/tags/${TAG}" -f "sha=${SHA}" > /dev/null
+            echo "Created tag ${TAG} at ${SHA:0:7}"
+          fi
+
+          # --- the release -------------------------------------------------------
+          release_exists() { gh release view "$1" --repo "$REPO" > /dev/null 2>&1; }
+          notes_flags=()
+          generate_flags=(--generate-notes)
+          if [ "$have_notes" = 1 ]; then
+            notes_flags=(--notes-file body.md)
+            generate_flags=()
+          fi
+
+          if release_exists "$TAG"; then
+            echo "Updating the existing release for ${TAG}"
+            gh release edit "$TAG" --repo "$REPO" --title "$title" "${notes_flags[@]}" --latest
+          elif [ -n "$REPLACE" ] && release_exists "$REPLACE"; then
+            echo "Moving the release for ${REPLACE} onto ${TAG}"
+            gh release edit "$REPLACE" --repo "$REPO" --tag "$TAG" --title "$title" "${notes_flags[@]}" --latest
+          else
+            echo "Creating a release for ${TAG}"
+            gh release create "$TAG" --repo "$REPO" --verify-tag --title "$title" "${notes_flags[@]}" "${generate_flags[@]}" --latest
+          fi
+
+          # --- retire the mistaken tag ---------------------------------------------
+          if [ -n "$REPLACE" ]; then
+            if release_exists "$REPLACE"; then
+              gh release delete "$REPLACE" --repo "$REPO" --cleanup-tag --yes
+            elif gh api "repos/${REPO}/git/ref/tags/${REPLACE}" > /dev/null 2>&1; then
+              gh api -X DELETE "repos/${REPO}/git/refs/tags/${REPLACE}"
+            fi
+            echo "Retired tag ${REPLACE}"
+          fi
+
+          # --- report ------------------------------------------------------------
+          gh release view "$TAG" --repo "$REPO" --json name,tagName,isDraft,isPrerelease,url \
+            --jq '"Release: \(.name)\nTag: \(.tagName)\nURL: \(.url)\nDraft: \(.isDraft)   Pre-release: \(.isPrerelease)"' \
+            | tee -a "$GITHUB_STEP_SUMMARY"

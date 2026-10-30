@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>AudioSeerr</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icon-180.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0d0d0f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="AudioSeerr">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&display=swap" rel="stylesheet">
+  <style>
+    /* Password visibility toggle inside user modal */
+    .pw-wrap { position: relative; display: flex; align-items: center; }
+    .pw-wrap .input { padding-right: 42px; width: 100%; }
+    .pw-toggle {
+      position: absolute; right: 10px;
+      background: none; border: none; cursor: pointer;
+      color: var(--text-muted, #8a8a96); padding: 4px;
+      display: flex; align-items: center; justify-content: center;
+      transition: color 0.15s; flex-shrink: 0;
+    }
+    .pw-toggle:hover { color: var(--text, #e8e8ec); }
+    .pw-toggle svg { width: 15px; height: 15px; pointer-events: none; }
+  </style>
+</head>
+<body>
+
+<!-- ── Top bar ──────────────────────────────────────────────────────────
+     Right-aligned account controls. The logo lives here only on phones, where
+     the sidebar is hidden. -->
+<header class="topbar">
+  <a href="/" class="topbar-logo" id="topbar-logo-link" aria-label="AudioSeerr — go to New &amp; Trending">
+    <svg width="26" height="26" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+      <circle cx="16" cy="16" r="14" fill="#1a1a1d" stroke="#f5a623" stroke-width="1.5"/>
+      <circle cx="16" cy="16" r="9"  stroke="#f5a623" stroke-width="1" opacity="0.4"/>
+      <circle cx="16" cy="16" r="4"  stroke="#f5a623" stroke-width="1" opacity="0.6"/>
+      <circle cx="16" cy="16" r="1.8" fill="#f5a623"/>
+      <line x1="22" y1="6" x2="17.2" y2="14.8" stroke="#f5a623" stroke-width="1.8" stroke-linecap="round"/>
+      <circle cx="22.5" cy="5.5" r="1.5" fill="#f5a623"/>
+    </svg>
+    <span class="topbar-title">AudioSeerr</span>
+  </a>
+  <div class="topbar-spacer"></div>
+
+  <div id="m-lidarr-status-badge" class="topbar-status" title="Lidarr connection">
+    <span class="status-dot" style="color:var(--text-muted)"></span><span class="topbar-status-text">Lidarr</span>
+  </div>
+
+  <div class="topbar-user">
+    <span id="topbar-username">—</span><span class="topbar-quota" id="topbar-quota"></span>
+  </div>
+
+  <button id="account-btn" class="btn btn-ghost btn-sm topbar-btn" title="Account &amp; password">
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    <span class="topbar-btn-label">Account</span>
+  </button>
+  <button id="logout-btn" class="btn btn-ghost btn-sm topbar-btn" title="Sign out">
+    <svg class="icon-logout" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    <span class="topbar-btn-label">Sign out</span>
+  </button>
+</header>
+
+<!-- ── Mobile bottom navigation (shown ≤768px) ─────────────────────────── -->
+<nav class="mobile-nav" aria-label="Main navigation">
+  <button class="nav-item active" data-page="discover" title="New &amp; Trending">
+    <span class="nav-icon">🎵</span><span>Trending</span>
+  </button>
+  <button class="nav-item" data-page="mood">
+    <span class="nav-icon">✨️</span><span>Mood</span>
+  </button>
+  <button class="nav-item" data-page="search">
+    <span class="nav-icon">🔍</span><span>Search</span>
+  </button>
+  <button class="nav-item" data-page="requests">
+    <span class="nav-icon">📋</span><span>Requests</span>
+  </button>
+  <button class="nav-item" data-page="downloads">
+    <span class="nav-icon">⬇️</span><span>Downloads</span>
+  </button>
+  <button class="nav-item admin-only hidden" data-page="all-requests">
+    <span class="nav-icon">📊</span><span>All</span>
+    <span class="pending-badge hidden" aria-label="Requests awaiting approval"></span>
+  </button>
+  <button class="nav-item admin-only hidden" data-page="users">
+    <span class="nav-icon">👤</span><span>Users</span>
+  </button>
+  <button class="nav-item admin-only hidden" data-page="api">
+    <span class="nav-icon">🔑</span><span>API</span>
+  </button>
+  <button class="nav-item admin-only hidden" data-page="settings">
+    <span class="nav-icon">⚙️</span><span>Settings</span>
+  </button>
+</nav>
+
+<!-- ── Sidebar ─────────────────────────────────────────────────────────── -->
+<aside class="sidebar">
+  <a href="/" class="sidebar-logo" id="sidebar-logo-link" aria-label="AudioSeerr — go to New &amp; Trending">
+    <svg width="30" height="30" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+      <!-- Record disc -->
+      <circle cx="16" cy="16" r="14" fill="#1a1a1d" stroke="#f5a623" stroke-width="1.5"/>
+      <circle cx="16" cy="16" r="9"  stroke="#f5a623" stroke-width="1" opacity="0.4"/>
+      <circle cx="16" cy="16" r="4"  stroke="#f5a623" stroke-width="1" opacity="0.6"/>
+      <circle cx="16" cy="16" r="1.8" fill="#f5a623"/>
+      <!-- Needle arm -->
+      <line x1="22" y1="6" x2="17.2" y2="14.8" stroke="#f5a623" stroke-width="1.8" stroke-linecap="round"/>
+      <circle cx="22.5" cy="5.5" r="1.5" fill="#f5a623"/>
+    </svg>
+    <span class="sidebar-brand">
+      <span class="sidebar-logo-text">AudioSeerr</span>
+      <span class="sidebar-logo-sub">Music &amp; Discography</span>
+    </span>
+  </a>
+
+  <nav class="sidebar-nav" aria-label="Main navigation">
+    <!-- Everything a normal user can reach -->
+    <div class="nav-section">Library</div>
+    <button type="button" class="nav-item active" data-page="discover">
+      <span class="nav-icon">🎵</span><span>New &amp; Trending</span>
+    </button>
+    <button type="button" class="nav-item" data-page="mood">
+      <span class="nav-icon">✨️</span><span>Mood Discovery</span>
+    </button>
+    <button type="button" class="nav-item" data-page="search">
+      <span class="nav-icon">🔍</span><span>Search</span>
+    </button>
+    <button type="button" class="nav-item" data-page="requests">
+      <span class="nav-icon">📋</span><span>My Requests</span>
+    </button>
+    <button type="button" class="nav-item" data-page="downloads">
+      <span class="nav-icon">⬇️</span><span>Downloads</span>
+    </button>
+
+    <!-- Admin-only. The whole group (label included) is hidden for regular
+         users, so the sidebar does not advertise pages they cannot open. -->
+    <div class="nav-section admin-only hidden">Admin</div>
+    <button type="button" class="nav-item admin-only hidden" data-page="all-requests">
+      <span class="nav-icon">📊</span><span>All Requests</span>
+      <span class="pending-badge hidden" aria-label="Requests awaiting approval"></span>
+    </button>
+    <button type="button" class="nav-item admin-only hidden" data-page="users">
+      <span class="nav-icon">👤</span><span>Users</span>
+    </button>
+    <button type="button" class="nav-item admin-only hidden" data-page="api">
+      <span class="nav-icon">🔑</span><span>API Keys</span>
+    </button>
+    <button type="button" class="nav-item admin-only hidden" data-page="settings">
+      <span class="nav-icon">⚙️</span><span>Settings</span>
+    </button>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="svc-label">Lidarr · Music</div>
+    <div id="lidarr-status-badge" class="svc-card" title="Lidarr connection">
+      <span class="status-dot" style="color:var(--text-muted)"></span>
+      <span class="svc-body">
+        <span class="svc-name">Lidarr</span>
+        <span class="svc-meta">checking…</span>
+      </span>
+    </div>
+    <div id="app-version" class="app-version" title="AudioSeerr version"></div>
+  </div>
+</aside>
+
+<!-- ── Main ─────────────────────────────────────────────────────────────── -->
+<main class="main">
+
+  <!-- DISCOVER PAGE -->
+  <div class="page active" id="page-discover">
+    <div class="page-header">
+      <h1 class="page-title">New &amp; Trending</h1>
+      <span class="page-subtitle">New releases, upcoming albums, and what’s trending right now — from Last.fm, Deezer &amp; iTunes</span>
+      <span class="discover-freshness" id="discover-freshness" title="When these charts were last fetched"></span>
+      <button id="discover-refresh" class="btn btn-ghost btn-sm" style="margin-left:auto" title="Fetch the latest charts now">↻️ Refresh</button>
+    </div>
+
+    <div id="discover-loading" class="spinner-wrap"><div class="spinner"></div></div>
+
+    <div id="discover-content" class="hidden">
+
+      <!-- Trending Artists -->
+      <div class="slider-wrap">
+        <div class="slider-header">
+          <div class="slider-title">🔥 Trending Artists</div>
+          <div class="slider-right">
+            <select class="source-select" id="artists-source" data-section="artists" aria-label="Trending artists source">
+              <option value="deezer">Deezer</option>
+              <option value="itunes">iTunes</option>
+              <option value="lastfm">Last.fm</option>
+            </select>
+            <div class="slider-controls">
+              <button class="slider-btn" id="artists-prev">‹</button>
+              <button class="slider-btn" id="artists-next">›</button>
+            </div>
+          </div>
+        </div>
+        <div class="slider-track-outer">
+          <div class="slider-track" id="artists-track"></div>
+        </div>
+      </div>
+
+      <!-- Top Artists of All Time -->
+      <div class="slider-wrap">
+        <div class="slider-header">
+          <div class="slider-title">🏆 Top Artists of All Time <span class="slider-sub" id="alltime-page"></span></div>
+          <div class="slider-right">
+            <button class="btn btn-ghost btn-sm" id="alltime-refresh" title="Show the next set of all-time artists">↻️ Refresh</button>
+            <div class="slider-controls">
+              <button class="slider-btn" id="alltime-prev">‹</button>
+              <button class="slider-btn" id="alltime-next">›</button>
+            </div>
+          </div>
+        </div>
+        <div class="slider-track-outer">
+          <div class="slider-track" id="alltime-track"></div>
+        </div>
+      </div>
+
+      <!-- Trending Albums -->
+      <div class="slider-wrap">
+        <div class="slider-header">
+          <div class="slider-title">💿 Trending Albums</div>
+          <div class="slider-right">
+            <select class="source-select" id="albums-source" data-section="albums" aria-label="Trending albums source">
+              <option value="deezer">Deezer</option>
+              <option value="itunes">iTunes</option>
+              <option value="lastfm">Last.fm</option>
+            </select>
+            <div class="slider-controls">
+              <button class="slider-btn" id="albums-prev">‹</button>
+              <button class="slider-btn" id="albums-next">›</button>
+            </div>
+          </div>
+        </div>
+        <div class="slider-track-outer">
+          <div class="slider-track" id="albums-track"></div>
+        </div>
+      </div>
+
+      <!-- New & Upcoming -->
+      <div class="slider-wrap">
+        <div class="slider-header">
+          <div class="slider-title">📅 New &amp; Upcoming Releases</div>
+          <div class="slider-right">
+            <select class="source-select" id="upcoming-source" data-section="upcoming" aria-label="New and upcoming source">
+              <option value="deezer">Deezer</option>
+              <option value="itunes" selected>iTunes</option>
+              <option value="lastfm">Last.fm</option>
+            </select>
+          </div>
+        </div>
+        <div class="music-grid" id="upcoming-grid"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MOOD DISCOVERY PAGE -->
+  <div class="page" id="page-mood">
+    <div class="page-header">
+      <h1 class="page-title">✨️ Mood Discovery</h1>
+      <span class="page-subtitle">Drop a few artists or genres, pick a vibe, and find new music to add to Lidarr — plus personal picks seeded from your own library below</span>
+    </div>
+    <div class="mood-controls">
+      <input type="text" id="mood-input" class="mood-input" autocomplete="off" spellcheck="false"
+             placeholder="e.g. Aphex Twin, Boards of Canada, dub techno, late-night ambient…">
+      <button id="mood-go" class="btn btn-primary mood-go">✨️ Discover</button>
+      <div id="mood-suggest" class="search-suggest" role="listbox"></div>
+    </div>
+    <div class="mood-chips" id="mood-chips" role="group" aria-label="Mood">
+      <button type="button" class="mood-chip" data-mood="chill">😌 Chill</button>
+      <button type="button" class="mood-chip" data-mood="energetic">⚡️ Energetic</button>
+      <button type="button" class="mood-chip" data-mood="focus">🎧 Focus</button>
+      <button type="button" class="mood-chip" data-mood="melancholic">🌧️ Melancholic</button>
+      <button type="button" class="mood-chip" data-mood="party">🎉 Party</button>
+      <button type="button" class="mood-chip" data-mood="experimental">🔬 Experimental</button>
+      <button type="button" class="mood-chip" data-mood="romantic">💘 Romantic</button>
+      <button type="button" class="mood-chip" data-mood="dark">🌑 Dark</button>
+    </div>
+    <div id="mood-status" class="mood-status hidden"></div>
+    <div id="mood-results" class="music-grid mood-results"></div>
+
+    <!-- For You — recommendation rows seeded from the Lidarr library. Auto-
+         populates when the page opens, so Mood Discovery has personal picks
+         to browse before any search. Hidden until the server returns rows
+         (needs Lidarr linked + a non-empty library). -->
+    <div class="foryou-wrap hidden" id="foryou-wrap">
+      <div class="slider-header foryou-header">
+        <div class="slider-title">🎧 For You <span class="foryou-sub">— based on your Lidarr library</span></div>
+        <button class="btn btn-ghost btn-sm" id="foryou-shuffle" title="Pick different artists from your library">↻️ Shuffle</button>
+      </div>
+      <div id="foryou-rows"></div>
+    </div>
+  </div>
+
+  <!-- SEARCH PAGE -->
+  <div class="page" id="page-search">
+    <div class="page-header">
+      <h1 class="page-title">Search Music</h1>
+    </div>
+    <div class="search-bar-wrap">
+      <div class="search-type-btns">
+        <button class="btn search-type-btn active" data-type="artist">Artists</button>
+        <button class="btn search-type-btn" data-type="album">Albums</button>
+      </div>
+      <div class="search-bar">
+        <input type="text" id="search-input" class="search-input" placeholder="Search by name…" autocomplete="off">
+        <button id="search-btn" class="btn btn-primary">Search</button>
+        <div id="search-suggest" class="search-suggest" role="listbox"></div>
+      </div>
+    </div>
+    <div id="search-results-wrap">
+      <div class="empty-state">
+        <div class="empty-state-icon">🔍</div>
+        <h3>Search for music</h3>
+        <p>Artists via Deezer + MusicBrainz · albums via MusicBrainz</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- MY REQUESTS PAGE -->
+  <div class="page" id="page-requests">
+    <div class="page-header">
+      <h1 class="page-title">My Requests</h1>
+      <span id="my-request-count" class="page-subtitle"></span>
+    </div>
+    <div id="my-requests-wrap">
+      <div class="spinner-wrap"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <!-- DOWNLOAD ACTIVITY PAGE -->
+  <div class="page" id="page-downloads">
+    <div class="page-header">
+      <h1 class="page-title">⬇️ Download Activity</h1>
+      <span id="downloads-count" class="page-subtitle">Live from Lidarr's download queue</span>
+      <button id="downloads-refresh" class="btn btn-ghost btn-sm" style="margin-left:auto">↻️ Refresh</button>
+    </div>
+    <div id="downloads-wrap">
+      <div class="spinner-wrap"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <!-- ALL REQUESTS PAGE (admin) -->
+  <div class="page admin-only hidden" id="page-all-requests">
+    <div class="page-header">
+      <h1 class="page-title">All Requests</h1>
+      <span id="all-request-count" class="page-subtitle"></span>
+    </div>
+
+    <!-- Request counters — same numbers as /api/summary. Tap a tile to filter
+         the table below to that state; the active filter tile is highlighted. -->
+    <div class="req-stats" id="request-stats" aria-label="Request statistics">
+      <button class="stat-tile stat-total" data-filter="" title="Show all requests">
+        <span class="stat-num" id="stat-total">—</span>
+        <span class="stat-label">📋 Total requests</span>
+      </button>
+      <button class="stat-tile stat-approved" data-filter="approved" title="Show approved requests">
+        <span class="stat-num" id="stat-approved">—</span>
+        <span class="stat-label">✅️ Approved</span>
+      </button>
+      <button class="stat-tile stat-available" data-filter="available" title="Show requests Lidarr has finished downloading">
+        <span class="stat-num" id="stat-available">—</span>
+        <span class="stat-label">🎉 Available</span>
+      </button>
+      <button class="stat-tile stat-pending" data-filter="pending" title="Show requests awaiting approval">
+        <span class="stat-num" id="stat-pending">—</span>
+        <span class="stat-label">🕓 Pending</span>
+      </button>
+      <button class="stat-tile stat-rejected" data-filter="rejected" title="Show rejected requests">
+        <span class="stat-num" id="stat-rejected">—</span>
+        <span class="stat-label">🚫 Rejected</span>
+      </button>
+    </div>
+
+    <div class="filter-bar" id="all-requests-filters">
+      <input type="text" id="ar-search" class="input filter-input" placeholder="Search artist, album, or user…" autocomplete="off">
+      <select id="ar-status" class="input filter-select" aria-label="Filter by status">
+        <option value="">All statuses</option>
+        <option value="pending">Pending approval</option>
+        <option value="approved">Approved</option>
+        <option value="rejected">Rejected</option>
+        <option value="available">Available</option>
+        <option value="partial">Downloading</option>
+        <option value="sent">Sent to Lidarr</option>
+        <option value="exists">In Library</option>
+        <option value="not_found">Not found</option>
+        <option value="error">Error</option>
+        <option value="not_configured">Not configured</option>
+      </select>
+      <select id="ar-type" class="input filter-select" aria-label="Filter by type">
+        <option value="">All types</option>
+        <option value="artist">Artists</option>
+        <option value="album">Albums</option>
+      </select>
+      <button id="ar-clear" class="btn btn-ghost btn-sm">Clear</button>
+    </div>
+    <div id="all-requests-wrap">
+      <div class="spinner-wrap"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <!-- USERS PAGE (admin) -->
+  <div class="page admin-only hidden" id="page-users">
+    <div class="page-header">
+      <h1 class="page-title">Users</h1>
+      <span class="page-subtitle">Accounts, daily request limits and per-user auto-approve</span>
+      <button id="add-user-btn" class="btn btn-primary" style="margin-left:auto">+ Add User</button>
+    </div>
+    <div class="table-wrap">
+      <table class="requests-table">
+        <thead>
+          <tr><th>Username</th><th>Role</th><th>Requests Today</th><th>Daily Limit</th><th>Can Request</th><th>Auto-approve</th><th>Actions</th></tr>
+        </thead>
+        <tbody id="users-tbody">
+          <tr><td colspan="7"><div class="spinner-wrap"><div class="spinner"></div></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SETTINGS PAGE (admin) — connections, approvals, notifications, retention -->
+  <div class="page admin-only hidden" id="page-settings">
+    <div class="page-header">
+      <h1 class="page-title">Settings</h1>
+      <span class="page-subtitle">Connections, approvals and notifications — saved server-side and synced to every browser and device</span>
+    </div>
+
+    <!-- Connections: link Lidarr / Last.fm from inside the app -->
+    <section class="conn-card" id="connections-card">
+      <div class="conn-head">
+        <h2 class="conn-title">🔗 Connections</h2>
+        <span class="conn-sub">Values saved here override <code>.env</code> and apply instantly — no restart needed. API keys are stored server-side and never shown again in full.</span>
+      </div>
+      <div class="conn-grid">
+        <div class="field-group">
+          <label for="set-lidarr-url">Lidarr URL</label>
+          <input id="set-lidarr-url" class="input" type="url" inputmode="url" placeholder="http://192.168.1.10:8686" autocomplete="off" autocapitalize="off" spellcheck="false">
+        </div>
+        <div class="field-group">
+          <label for="set-lidarr-key">Lidarr API key <span class="conn-optional">Lidarr → Settings → General</span></label>
+          <div class="pw-wrap">
+            <input id="set-lidarr-key" class="input" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste your Lidarr API key">
+            <button type="button" class="pw-toggle" data-target="set-lidarr-key" aria-label="Show API key" title="Show/hide">
+              <svg class="pw-eye" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg class="pw-eye-off" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+          </div>
+          <div class="conn-hint" id="lidarr-conn-hint"></div>
+          <button type="button" id="conn-clear-lidarr-key" class="conn-clear hidden">✕ Remove saved key (fall back to .env)</button>
+        </div>
+        <div class="field-group">
+          <label for="set-lastfm-key">Last.fm API key <span class="conn-optional">optional</span></label>
+          <div class="pw-wrap">
+            <input id="set-lastfm-key" class="input" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Optional — from last.fm/api">
+            <button type="button" class="pw-toggle" data-target="set-lastfm-key" aria-label="Show API key" title="Show/hide">
+              <svg class="pw-eye" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg class="pw-eye-off" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+          </div>
+          <div class="conn-hint" id="lastfm-conn-hint"></div>
+          <button type="button" id="conn-clear-lastfm-key" class="conn-clear hidden">✕ Remove saved key (fall back to .env)</button>
+        </div>
+      </div>
+      <div class="conn-actions">
+        <button id="conn-test-btn" class="btn btn-ghost">Test connection</button>
+        <button id="conn-save-btn" class="btn btn-primary">Save</button>
+        <span id="conn-status" class="conn-status" role="status" aria-live="polite"></span>
+      </div>
+
+      <!-- Lidarr add behaviour: how much work each approved request creates
+           for Lidarr. Saves instantly on change. -->
+      <div class="conn-divider"></div>
+      <div class="lidarr-add-block">
+        <div class="lidarr-add-title">🎛 Lidarr add behaviour</div>
+        <div class="conn-hint" style="margin-bottom:12px">Controls what Lidarr does after AudioSeerr adds an artist. <strong>Monitor: All albums + search on add</strong> makes Lidarr fetch the artist's complete metadata and immediately run indexer searches for the <em>entire discography</em> — great for completeness, heavy on Lidarr &amp; your indexers for prolific artists. Dial these down if Lidarr spikes after requests. Saves instantly.</div>
+        <div class="lidarr-add-grid">
+          <div class="field-group">
+            <label for="set-lidarr-monitor">Monitor on add</label>
+            <select id="set-lidarr-monitor" class="input">
+              <option value="all">All albums (full discography)</option>
+              <option value="latest">Latest album only</option>
+              <option value="future">Future releases only</option>
+              <option value="none">Nothing (add unmonitored)</option>
+            </select>
+          </div>
+          <div class="approve-toggle-row" style="padding-top:22px">
+            <label class="switch" for="set-search-on-add">
+              <input type="checkbox" id="set-search-on-add" checked>
+              <span class="switch-slider" aria-hidden="true"></span>
+            </label>
+            <div class="approve-toggle-text">
+              <label for="set-search-on-add" class="approve-toggle-label">Search on add</label>
+              <div class="conn-hint" id="lidarr-add-hint"></div>
+            </div>
+          </div>
+          <div class="field-group">
+            <label for="set-lidarr-root">Root folder</label>
+            <select id="set-lidarr-root" class="input" disabled><option value="">Loading…</option></select>
+            <div class="conn-hint">Where new artists are stored. Leave on the default unless you run more than one root folder.</div>
+          </div>
+          <div class="field-group">
+            <label for="set-lidarr-metadata">Metadata profile</label>
+            <select id="set-lidarr-metadata" class="input" disabled><option value="">Loading…</option></select>
+            <div class="conn-hint">Controls which release types Lidarr tracks (studio albums only, everything, …).</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Notifications: reach people when nobody has AudioSeerr open -->
+    <section class="conn-card" id="notifications-card">
+      <div class="conn-head">
+        <h2 class="conn-title">🔔 Notifications</h2>
+        <span class="conn-sub">Send request events to Discord, ntfy, Gotify or any webhook. Delivered server-side, so no browser needs to be open. URLs often contain a token — they are stored server-side and only ever shown masked.</span>
+      </div>
+      <div class="conn-grid">
+        <div class="field-group">
+          <label for="notif-type">Service</label>
+          <select id="notif-type" class="input">
+            <option value="discord">Discord webhook</option>
+            <option value="ntfy">ntfy topic URL</option>
+            <option value="gotify">Gotify message URL</option>
+            <option value="webhook">Generic JSON webhook</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label for="notif-label">Name <span class="conn-optional">optional</span></label>
+          <input id="notif-label" class="input" type="text" placeholder="e.g. Family Discord" autocomplete="off">
+        </div>
+        <div class="field-group">
+          <label for="notif-url">URL</label>
+          <input id="notif-url" class="input" type="url" inputmode="url" placeholder="https://…" autocomplete="off" spellcheck="false">
+        </div>
+      </div>
+      <div class="conn-actions">
+        <button id="notif-add-btn" class="btn btn-primary">Add target</button>
+      </div>
+      <div id="notif-targets-wrap" style="margin-top:14px"></div>
+    </section>
+
+    <!-- Request Approvals: Overseerr-style auto-approve / moderation queue -->
+    <section class="conn-card" id="approvals-card">
+      <div class="conn-head">
+        <h2 class="conn-title">🕓 Request Approvals</h2>
+        <span class="conn-sub">Decide whether requests go straight to Lidarr or wait for your approval. Per-user exceptions live in Manage Users below — admins are always auto-approved.</span>
+      </div>
+      <div class="approve-toggle-row">
+        <label class="switch" for="set-auto-approve-all">
+          <input type="checkbox" id="set-auto-approve-all" checked>
+          <span class="switch-slider" aria-hidden="true"></span>
+        </label>
+        <div class="approve-toggle-text">
+          <label for="set-auto-approve-all" class="approve-toggle-label">Auto-approve all requests</label>
+          <div class="conn-hint" id="auto-approve-hint"></div>
+        </div>
+      </div>
+
+      <!-- Retention: db.json is re-read and re-written on every request, so an
+           unbounded history is a real cost. Off by default. -->
+      <div class="conn-divider"></div>
+      <div class="lidarr-add-block">
+        <div class="lidarr-add-title">🧹 Request history retention</div>
+        <div class="conn-hint" style="margin-bottom:12px">Optional housekeeping. Only <em>settled</em> requests (available, already-in-library, rejected) are ever removed — anything pending or still downloading is kept. Leave both blank to keep everything forever.</div>
+        <div class="lidarr-add-grid">
+          <div class="field-group">
+            <label for="set-keep-days">Delete settled requests older than (days)</label>
+            <input id="set-keep-days" class="input" type="number" min="0" placeholder="off">
+          </div>
+          <div class="field-group">
+            <label for="set-keep-max">Keep at most (requests)</label>
+            <input id="set-keep-max" class="input" type="number" min="0" placeholder="off">
+          </div>
+        </div>
+        <div class="conn-actions" style="margin-top:10px">
+          <button id="retention-save" class="btn btn-ghost">Save retention</button>
+          <button id="backup-download" class="btn btn-ghost" title="db.json with password hashes and API keys redacted">⬇️ Download backup</button>
+          <button id="csv-export" class="btn btn-ghost">⬇️ Export requests (CSV)</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+
+  <!-- API ACCESS PAGE (admin) -->
+  <div class="page admin-only hidden" id="page-api">
+    <div class="page-header">
+      <h1 class="page-title">API Access</h1>
+      <span class="page-subtitle">Generate keys so other programs can connect to AudioSeerr</span>
+    </div>
+
+    <div class="api-help">
+      <p>Send your key with every request in an <code>X-Api-Key</code> header
+        (an <code>Authorization: Bearer &lt;key&gt;</code> header works too).
+        A key acts as an <strong>admin service account</strong> with no daily request limit —
+        it can browse, request, and approve or reject.</p>
+      <p style="margin-top:8px"><strong>What a key deliberately cannot do:</strong> manage users or other API keys,
+        read or change your Lidarr/Last.fm connection settings, or download a backup.
+        Those need a logged-in admin session, so a leaked key can't exfiltrate your
+        Lidarr credentials, mint more keys, or repoint AudioSeerr at another server.</p>
+      <p style="margin-top:8px">Treat a key like a password: anyone who can reach your instance with it
+        has admin-level access to requests. Revoke it here the moment it leaks.</p>
+      <pre class="api-example"># Example: request an artist via the API
+curl -X POST "<span class="api-base">http://your-host:7575</span>/api/requests" \
+  -H "X-Api-Key: <span class="api-base">YOUR_KEY</span>" \
+  -H "Content-Type: application/json" \
+  -d '{"type":"artist","artistName":"Daft Punk"}'</pre>
+    </div>
+
+    <div class="api-actions">
+      <button id="generate-key-btn" class="btn btn-primary">+ Generate New Key</button>
+    </div>
+
+    <div id="apikeys-wrap">
+      <div class="spinner-wrap"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ── Request Modal ─────────────────────────────────────────────────────── -->
+<div id="modal-request" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="modal-request-title">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-request-title" class="modal-title">Request Music</h2>
+      <button id="modal-request-close" class="btn btn-ghost" aria-label="Close">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="modal-item-preview">
+        <img id="modal-cover" class="modal-cover" src="" alt="" data-hide-on-error>
+        <div class="modal-item-info">
+          <div id="modal-item-title" class="modal-item-title">—</div>
+          <div id="modal-item-sub"   class="modal-item-sub"></div>
+          <div id="modal-item-type"  class="modal-item-type"></div>
+        </div>
+      </div>
+
+      <!-- Lidarr artist/album picker -->
+      <div id="lidarr-match-wrap" style="margin-bottom:14px;"></div>
+
+      <!-- Quality profiles from Lidarr -->
+      <div class="field-group">
+        <label>
+          Quality Profile
+          <span style="font-size:0.7rem;color:var(--text-faint);font-weight:400"> — from your Lidarr instance</span>
+        </label>
+        <div class="quality-grid" id="quality-grid">
+          <div style="color:var(--text-muted);font-size:0.8rem;padding:8px 0">Loading from Lidarr…</div>
+        </div>
+      </div>
+
+      <div id="lidarr-check-msg" class="hidden" style="margin-top:8px;"></div>
+    </div>
+
+    <div class="modal-footer">
+      <button id="modal-request-cancel" class="btn btn-ghost">Cancel</button>
+      <button id="modal-request-submit" class="btn btn-primary" disabled>Loading…</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Add/Edit User Modal ───────────────────────────────────────────────── -->
+<div id="modal-add-user" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="user-modal-title" class="modal-title">Add User</h2>
+      <button id="modal-user-close" class="btn btn-ghost" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-group"><label for="new-username">Username</label><input id="new-username" type="text" class="input" autocomplete="off" spellcheck="false"></div>
+      <div class="field-group">
+        <label for="new-password">Password</label>
+        <div class="pw-wrap">
+          <input id="new-password" type="password" class="input" placeholder="Password" autocomplete="new-password">
+          <button type="button" class="pw-toggle" id="user-pw-toggle" aria-label="Show password" title="Show/hide password">
+            <svg id="user-icon-eye" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            <svg id="user-icon-eye-off" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+              <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+              <line x1="1" y1="1" x2="23" y2="23"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="field-group"><label for="new-role">Role</label>
+        <select id="new-role" class="input"><option value="user">User</option><option value="admin">Admin</option></select>
+      </div>
+      <div class="field-group"><label for="new-limit">Daily request limit</label><input id="new-limit" type="number" class="input" value="10" min="0"></div>
+      <div class="field-group field-inline">
+        <input id="new-can-request" type="checkbox" checked>
+        <label for="new-can-request">Can make requests</label>
+      </div>
+      <div class="field-group field-inline">
+        <input id="new-auto-approve" type="checkbox">
+        <label for="new-auto-approve">Auto-approve requests <span class="field-note">— skips the approval queue even when global auto-approve is off</span></label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button id="modal-user-cancel" class="btn btn-ghost">Cancel</button>
+      <button id="modal-user-submit" class="btn btn-primary">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Change Password Modal (available to every signed-in user) ─────────── -->
+<div id="modal-change-password" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="cp-title">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="cp-title" class="modal-title">Change Password</h2>
+      <button id="cp-close" class="btn btn-ghost" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-group">
+        <label for="cp-current">Current password</label>
+        <div class="pw-wrap">
+          <input id="cp-current" type="password" class="input" autocomplete="current-password">
+          <button type="button" class="pw-toggle" data-target="cp-current" aria-label="Show password" title="Show/hide password">
+            <svg class="pw-eye" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg class="pw-eye-off" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="field-group">
+        <label for="cp-new">New password</label>
+        <div class="pw-wrap">
+          <input id="cp-new" type="password" class="input" autocomplete="new-password" placeholder="At least 4 characters">
+          <button type="button" class="pw-toggle" data-target="cp-new" aria-label="Show password" title="Show/hide password">
+            <svg class="pw-eye" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg class="pw-eye-off" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="field-group">
+        <label for="cp-confirm">Confirm new password</label>
+        <div class="pw-wrap">
+          <input id="cp-confirm" type="password" class="input" autocomplete="new-password">
+          <button type="button" class="pw-toggle" data-target="cp-confirm" aria-label="Show password" title="Show/hide password">
+            <svg class="pw-eye" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg class="pw-eye-off" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button id="cp-cancel" class="btn btn-ghost">Cancel</button>
+      <button id="cp-submit" class="btn btn-primary">Update password</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Toast container ───────────────────────────────────────────────────── -->
+<div id="toast-container" aria-live="polite"></div>
+
+<!-- ── Admin new-request notification popups ─────────────────────────────── -->
+<div id="notif-container" aria-live="polite"></div>
+
+<script src="/app.js"></script>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// Small DOM wiring that belongs with the markup rather than in app.js.
+//
+// This block used to hold five "PATCHES". Four are gone as of 2.10:
+//   1. Enter-to-search DUPLICATED the Enter handler initSearchSuggest() already
+//      installs on the same input. preventDefault does not stop a sibling
+//      listener on the same element, so every Enter ran two identical searches:
+//      two /api/search calls, two renders, two in-library batches, and a render
+//      race between them.
+//   4. "Default the quality profile to Standard" queried
+//      `button, [data-profile-id], .quality-btn, input[type=radio]` inside
+//      #quality-grid, but app.js renders the profiles as `div.quality-opt` — so
+//      the selector never matched and the MutationObserver ran on every mutation
+//      to do nothing. app.js already prefers a profile named "Standard" itself.
+//   5. Was already a comment describing removed code.
+// What remains is the user-modal wiring, which has no equivalent in app.js.
+// ─────────────────────────────────────────────────────────────────────────────
+
+document.addEventListener('DOMContentLoaded', () => {
+
+  // Enter submits the Add/Edit User modal.
+  document.getElementById('modal-add-user')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target.tagName !== 'BUTTON') {
+      e.preventDefault();
+      document.getElementById('modal-user-submit')?.click();
+    }
+  });
+
+  // Password visibility toggle for the user-management modal (this one has no
+  // data-target, so app.js's generic handler does not cover it).
+  const userPwInput    = document.getElementById('new-password');
+  const userPwToggle   = document.getElementById('user-pw-toggle');
+  const userIconEye    = document.getElementById('user-icon-eye');
+  const userIconEyeOff = document.getElementById('user-icon-eye-off');
+  if (userPwToggle && userPwInput) {
+    userPwToggle.addEventListener('click', () => {
+      const isHidden = userPwInput.type === 'password';
+      userPwInput.type = isHidden ? 'text' : 'password';
+      userIconEye.style.display    = isHidden ? 'none' : '';
+      userIconEyeOff.style.display = isHidden ? ''     : 'none';
+      userPwToggle.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+    });
+  }
+
+});
+</script>
+
+</body>
+</html>

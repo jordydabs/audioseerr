@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AudioSeerr — Login</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icon-180.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0d0d0f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="AudioSeerr">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&display=swap" rel="stylesheet">
+  <style>
+    :root { --bg:#0d0d0f;--surface:#141416;--surface-2:#1a1a1d;--border:rgba(255,255,255,0.07);--text:#e8e8ec;--text-muted:#8a8a96;--gold:#f5a623;--danger:#e04343;--radius:8px; }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Inter','Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif;background:var(--bg);color:var(--text);min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:20px;}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px 36px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,0.5);}
+    .logo{display:flex;align-items:center;gap:10px;color:var(--gold);margin-bottom:28px;justify-content:center;}
+    .logo-text{font-size:18px;font-weight:700;}
+    h1{font-size:18px;font-weight:700;margin-bottom:6px;}
+    p{font-size:13px;color:var(--text-muted);margin-bottom:24px;}
+    .field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
+    label{font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;}
+    input{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;color:var(--text);font-size:14px;font-family:inherit;transition:border-color 0.15s;width:100%;}
+    input:focus{outline:none;border-color:var(--gold);}
+    /* Password wrapper */
+    .pw-wrap{position:relative;display:flex;align-items:center;}
+    .pw-wrap input{padding-right:42px;}
+    .pw-toggle{position:absolute;right:12px;background:none;border:none;cursor:pointer;color:var(--text-muted);padding:4px;display:flex;align-items:center;justify-content:center;transition:color 0.15s;flex-shrink:0;}
+    .pw-toggle:hover{color:var(--text);}
+    .pw-toggle svg{width:16px;height:16px;pointer-events:none;}
+    .btn{display:block;width:100%;padding:11px;border-radius:var(--radius);background:var(--gold);color:#000;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;border:none;margin-top:8px;transition:background 0.15s;}
+    .btn:hover{background:#ffc04a;}
+    .btn:disabled{opacity:0.45;cursor:not-allowed;}
+    .error-msg{display:none;background:rgba(224,67,67,0.1);border:1px solid rgba(224,67,67,0.3);border-radius:var(--radius);padding:10px 14px;font-size:13px;color:var(--danger);margin-top:10px;}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <svg width="36" height="36" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <circle cx="16" cy="16" r="14" fill="#1a1a1d" stroke="#f5a623" stroke-width="1.5"/>
+        <circle cx="16" cy="16" r="9"  stroke="#f5a623" stroke-width="1" opacity="0.4"/>
+        <circle cx="16" cy="16" r="4"  stroke="#f5a623" stroke-width="1" opacity="0.6"/>
+        <circle cx="16" cy="16" r="1.8" fill="#f5a623"/>
+        <line x1="22" y1="6" x2="17.2" y2="14.8" stroke="#f5a623" stroke-width="1.8" stroke-linecap="round"/>
+        <circle cx="22.5" cy="5.5" r="1.5" fill="#f5a623"/>
+      </svg>
+      <span class="logo-text">AudioSeerr</span>
+    </div>
+    <h1>Welcome back 🎵</h1>
+    <p>Sign in to request music — you'll stay logged in for 365 days</p>
+    <form id="login-form" novalidate>
+      <div class="field">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" autocomplete="username" required spellcheck="false">
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <div class="pw-wrap">
+          <input type="password" id="password" name="password" autocomplete="current-password" required>
+          <button type="button" class="pw-toggle" id="pw-toggle-btn" aria-label="Show password" title="Show/hide password">
+            <!-- Eye icon (shown when password is hidden) -->
+            <svg id="icon-eye" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            <!-- Eye-off icon (shown when password is visible) -->
+            <svg id="icon-eye-off" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+              <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+              <line x1="1" y1="1" x2="23" y2="23"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <button type="submit" class="btn" id="login-btn">Sign in</button>
+    </form>
+    <div class="error-msg" id="error-msg"></div>
+  </div>
+  <script>
+    // Where to land after signing in. Only ever a same-origin path — never
+    // trust a caller-supplied absolute URL here, that is an open redirect.
+    function nextPath() {
+      const raw = new URLSearchParams(location.search).get('next') || '/';
+      return /^\/(?!\/)[\w\-./?=&%]*$/.test(raw) ? raw : '/';
+    }
+
+    // Redirect if already logged in
+    if (localStorage.getItem('as_token')) window.location.href = nextPath();
+
+    // ── Password visibility toggle ───────────────────────────────────────
+    const pwInput     = document.getElementById('password');
+    const pwToggleBtn = document.getElementById('pw-toggle-btn');
+    const iconEye     = document.getElementById('icon-eye');
+    const iconEyeOff  = document.getElementById('icon-eye-off');
+
+    pwToggleBtn.addEventListener('click', () => {
+      const isHidden = pwInput.type === 'password';
+      pwInput.type = isHidden ? 'text' : 'password';
+      iconEye.style.display    = isHidden ? 'none'  : '';
+      iconEyeOff.style.display = isHidden ? ''      : 'none';
+      pwToggleBtn.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+    });
+
+    // ── Login form (enter key handled automatically by type="submit") ────
+    document.getElementById('login-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const btn = document.getElementById('login-btn');
+      const err = document.getElementById('error-msg');
+      err.style.display = 'none';
+      btn.disabled = true; btn.textContent = 'Signing in…';
+      try {
+        const r = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: document.getElementById('username').value.trim(),
+            password: document.getElementById('password').value
+          })
+        });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || 'Login failed');
+        localStorage.setItem('as_token', d.token);
+        localStorage.setItem('as_role',  d.role);
+        localStorage.setItem('as_user',  d.username);
+        window.location.href = nextPath();
+      } catch (ex) {
+        err.textContent = ex.message;
+        err.style.display = 'block';
+        btn.disabled = false; btn.textContent = 'Sign in';
+      }
+    });
+  </script>
+</body>
+</html>
