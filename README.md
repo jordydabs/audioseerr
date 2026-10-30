@@ -9,7 +9,7 @@
 Browse new and trending music, search across multiple metadata providers, and send artist and album requests straight to Lidarr — with per-user accounts, request limits, approvals, API keys, and a dashboard-ready summary endpoint.
 
 [![Version](https://img.shields.io/github/package-json/v/jordydabs/audioseerr?label=version&color=f5a623)](https://github.com/jordydabs/audioseerr/releases/latest)
-[![Node](https://img.shields.io/badge/node-20--alpine-339933?logo=node.js&logoColor=white)](Dockerfile)
+[![Node](https://img.shields.io/badge/node-24--alpine-339933?logo=node.js&logoColor=white)](Dockerfile)
 [![Docker Compose](https://img.shields.io/badge/docker-compose-2496ED?logo=docker&logoColor=white)](docker-compose.yml)
 [![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-blue)](LICENSE)
 
@@ -349,7 +349,7 @@ Need just the counters (no live Lidarr round-trip)? `GET /api/requests/stats` re
 
 AudioSeerr's container is hardened out of the box:
 
-- **Minimal pinned base** — multi-stage build on `node:20-alpine3.20` (pinned, not `:latest`), runtime image carries only production `node_modules`. Scan with `docker scout cves audioseerr:2.10.0` or `trivy image audioseerr:2.10.0`.
+- **Minimal pinned base** — multi-stage build on `node:24-alpine3.24` (pinned, not `:latest`), runtime image carries only production `node_modules`. Scan with `docker scout cves audioseerr:2.10.0` or `trivy image audioseerr:2.10.0`.
 - **Least privilege** — runs as the non-root `node` user (uid/gid 1000); `cap_drop: ALL`; `no-new-privileges`.
 - **Filesystem & network** — read-only root filesystem with a `tmpfs` for `/tmp`; only `./data` is writable, and `db.json` is written atomically (temp file + rename) so a crash mid-write can't corrupt it. Runs on its own bridge network.
 - **Secrets** — nothing baked into the image (`.env` is excluded via `.dockerignore`); `*_FILE` variants support Docker secrets / vaults; production refuses insecure default secrets. Connection settings saved from the app live in `db.json` (same sensitivity as `.env` — keep `./data` private); they are readable/writable only from a logged-in **admin session** — external API keys can neither read nor change them, and saved keys are never echoed back to the browser (masked tail only).
@@ -364,7 +364,7 @@ AudioSeerr's container is hardened out of the box:
 
 ## Tech stack
 
-- **Backend:** Node.js 20 · Express · JWT auth · bcrypt · helmet · express-rate-limit
+- **Backend:** Node.js 24 · Express · JWT auth · bcrypt · helmet · express-rate-limit
 - **Frontend:** vanilla JS / HTML / CSS (no build step), served from `public/`
 - **Storage:** flat-file `db.json` (atomic writes)
 - **External:** Lidarr API · MusicBrainz · Last.fm / Deezer / iTunes

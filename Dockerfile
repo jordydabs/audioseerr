@@ -1,12 +1,18 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # AudioSeerr — hardened multi-stage image
 #
-# Base image is PINNED (Node 20 LTS on a fixed Alpine) instead of a floating
-# tag like :latest or :20-alpine, so builds are reproducible and you know
+# Base image is PINNED (Node 24 LTS on a fixed Alpine) instead of a floating
+# tag like :latest or :24-alpine, so builds are reproducible and you know
 # exactly what ships. For maximum supply-chain integrity, pin to a digest:
-#     FROM node:20-alpine3.20@sha256:<digest>
-# Get the digest with:  docker buildx imagetools inspect node:20-alpine3.20
+#     FROM node:24-alpine3.24@sha256:<digest>
+# Get the digest with:  docker buildx imagetools inspect node:24-alpine3.24
 # and enable Docker Content Trust when pulling:  DOCKER_CONTENT_TRUST=1
+#
+# A pin only stays safe while upstream still maintains it: once Node or Alpine
+# reaches end-of-life its tags stop being rebuilt and quietly stop getting
+# security patches. Re-check both schedules when bumping, and at least yearly:
+#     https://nodejs.org/en/about/previous-releases
+#     https://alpinelinux.org/releases/
 #
 # Alpine keeps the package surface (and therefore the CVE surface) small.
 # Scan the built image before deploying, e.g.:
@@ -14,7 +20,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 
 # ── Stage 1: install production dependencies only ────────────────────────────
-FROM node:20-alpine3.20 AS deps
+FROM node:24-alpine3.24 AS deps
 WORKDIR /app
 COPY package*.json ./
 # package-lock.json is now committed, so this takes the `npm ci` branch: exact,
@@ -30,7 +36,7 @@ RUN if [ -f package-lock.json ]; then \
     fi
 
 # ── Stage 2: minimal runtime ─────────────────────────────────────────────────
-FROM node:20-alpine3.20 AS runtime
+FROM node:24-alpine3.24 AS runtime
 ENV NODE_ENV=production
 # PORT is honoured by the app, the HEALTHCHECK and EXPOSE below, so overriding
 # it at run time actually works end to end.
