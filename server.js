@@ -60,7 +60,7 @@ if (process.env.TRUST_PROXY) {
 
 // App version — read from package.json (fallback keeps things working if the
 // file ever isn't bundled next to server.js).
-let APP_VERSION = '2.10.0';
+let APP_VERSION = '2.10.1';
 try { APP_VERSION = require('./package.json').version || APP_VERSION; } catch {}
 
 // Sent on every outbound call. MusicBrainz in particular requires an

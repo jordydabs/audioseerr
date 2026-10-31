@@ -16,7 +16,7 @@ body:
     attributes:
       label: AudioSeerr version
       description: Shown in the sidebar, and in the `version` field of `GET /api/health`.
-      placeholder: "2.10.0"
+      placeholder: "2.10.1"
     validations:
       required: true
   - type: dropdown

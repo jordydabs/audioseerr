@@ -314,7 +314,7 @@ location = /audioseerr/summary {
 ```jsonc
 {
   "app": "AudioSeerr",
-  "version": "2.10.0",
+  "version": "2.10.1",
   "lidarr":   { "connected": true, "version": "2.x", "reason": null },
   "queue":    { "count": 3 },
   "scope": "all",          // "all" for admins/API keys, "mine" for a regular user
@@ -348,7 +348,7 @@ Need just the counters (no live Lidarr round-trip)? `GET /api/requests/stats` re
 
 AudioSeerr's container is hardened out of the box:
 
-- **Minimal pinned base** — multi-stage build on `node:24-alpine3.24` (pinned, not `:latest`), runtime image carries only production `node_modules`. Scan with `docker scout cves audioseerr:2.10.0` or `trivy image audioseerr:2.10.0`.
+- **Minimal pinned base** — multi-stage build on `node:24-alpine3.24` (pinned, not `:latest`), runtime image carries only production `node_modules`. Scan with `docker scout cves audioseerr:2.10.1` or `trivy image audioseerr:2.10.1`.
 - **Least privilege** — runs as the non-root `node` user (uid/gid 1000); `cap_drop: ALL`; `no-new-privileges`.
 - **Filesystem & network** — read-only root filesystem with a `tmpfs` for `/tmp`; only `./data` is writable, and `db.json` is written atomically (temp file + rename) so a crash mid-write can't corrupt it. Runs on its own bridge network.
 - **Secrets** — nothing baked into the image (`.env` is excluded via `.dockerignore`); `*_FILE` variants support Docker secrets / vaults; production refuses insecure default secrets. Connection settings saved from the app live in `db.json` (same sensitivity as `.env` — keep `./data` private); they are readable/writable only from a logged-in **admin session** — external API keys can neither read nor change them, and saved keys are never echoed back to the browser (masked tail only).
