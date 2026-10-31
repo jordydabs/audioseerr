@@ -4,6 +4,42 @@ All notable changes to AudioSeerr are documented here. Release notes for each
 version are also published on the
 [Releases page](https://github.com/jordydabs/audioseerr/releases).
 
+## 2.10.1 (unreleased)
+
+The Docker image moves off end-of-life base images. Only the `Dockerfile` and the
+docs that name its base change — no application code, configuration or data
+format.
+
+### Upgrade notes
+
+- **Rebuild the image.** `docker compose up -d --build` (the quick-start
+  command) does it. A plain `docker compose up -d` reuses an existing
+  `audioseerr:2.10.0` image and keeps running the old base.
+- **32-bit ARM hosts (armv6/armv7) can no longer build the image.** The
+  `node:24-alpine` images are published for amd64, arm64 and s390x only. On a
+  32-bit Raspberry Pi, change both `FROM` lines in the `Dockerfile` to
+  `node:22-alpine3.24` (Node.js 22 is supported until 2027-04-30).
+- Nothing changes in `.env`, `docker-compose.yml` or `./data`.
+
+### Security
+
+- **The image no longer builds on end-of-life base images.** The `Dockerfile`
+  pinned `node:20-alpine3.20`. Node.js 20 reached end-of-life on 2026-04-30 and
+  Alpine 3.20 on 2026-04-01, and that tag was last rebuilt in May 2025 — so the
+  image shipped Node.js 20.19.2, three security releases behind the last 20.x,
+  on an Alpine that no longer gets fixes. That undercut the hardened, scannable
+  image the README promises. Both build stages now use `node:24-alpine3.24`:
+  Node.js 24 LTS (supported until 2028-04-30) on Alpine 3.24 (supported until
+  mid-2028). It is still a pinned tag, not `:latest`, and the `Dockerfile`
+  header now says where to re-check the support schedules.
+
+### Internal
+
+- When `npm ci` cannot download its dependencies (seen behind a
+  TLS-intercepting proxy), the build now fails instead of finishing with an
+  empty `node_modules`: npm 10.8.2 on the old base exited 0 after the failure,
+  while npm 11 exits non-zero with the underlying error.
+
 ## [2.10.0] - 2026-10-23
 
 A full security, correctness and integration review. Two of the fixes below are
