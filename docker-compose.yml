@@ -19,7 +19,7 @@
 services:
   audioseerr:
     build: .
-    image: audioseerr:2.10.0
+    image: audioseerr:2.10.1
     container_name: audioseerr
     ports:
       - "7575:7575"

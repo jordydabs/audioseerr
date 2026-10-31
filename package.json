@@ -1,6 +1,6 @@
 {
   "name": "audioseerr",
-  "version": "2.10.0",
+  "version": "2.10.1",
   "description": "Self-hosted music request manager for Lidarr — discover, search, and request artists and albums, with multi-source Mood Discovery, fulfilment tracking and outbound notifications.",
   "license": "PolyForm-Noncommercial-1.0.0",
   "main": "server.js",

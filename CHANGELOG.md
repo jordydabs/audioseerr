@@ -4,7 +4,7 @@ All notable changes to AudioSeerr are documented here. Release notes for each
 version are also published on the
 [Releases page](https://github.com/jordydabs/audioseerr/releases).
 
-## 2.10.1 (unreleased)
+## [2.10.1] - 2026-10-31
 
 The Docker image moves off end-of-life base images. Only the `Dockerfile` and the
 docs that name its base change — no application code, configuration or data
@@ -13,13 +13,15 @@ format.
 ### Upgrade notes
 
 - **Rebuild the image.** `docker compose up -d --build` (the quick-start
-  command) does it. A plain `docker compose up -d` reuses an existing
-  `audioseerr:2.10.0` image and keeps running the old base.
+  command) does it. If you keep an older `docker-compose.yml` whose image tag is
+  still `audioseerr:2.10.0`, a plain `docker compose up -d` reuses that existing
+  image and keeps running the old base.
 - **32-bit ARM hosts (armv6/armv7) can no longer build the image.** The
   `node:24-alpine` images are published for amd64, arm64 and s390x only. On a
   32-bit Raspberry Pi, change both `FROM` lines in the `Dockerfile` to
   `node:22-alpine3.24` (Node.js 22 is supported until 2027-04-30).
-- Nothing changes in `.env`, `docker-compose.yml` or `./data`.
+- Nothing changes in `.env` or `./data`; `docker-compose.yml` only gets the new
+  image tag.
 
 ### Security
 
@@ -297,4 +299,5 @@ strongly recommended**.
   reverse-proxy snippet that turned every admin route into an unauthenticated
   API, an overstated mood list, and the search provider description.
 
+[2.10.1]: https://github.com/jordydabs/audioseerr/releases/tag/v2.10.1
 [2.10.0]: https://github.com/jordydabs/audioseerr/releases/tag/v2.10.0
