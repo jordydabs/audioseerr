@@ -18,9 +18,6 @@ Browse new and trending music, search across multiple metadata providers, and se
 [Features](#features) · [Quick start](#quick-start) · [Configuration](#configuration) · [API](#api-access) · [Security](#security) · [Changelog](CHANGELOG.md)
 
 </div>
-
-https://github.com/user-attachments/assets/de7a212e-6918-4e3f-be31-b0af29c0d756
-
 ---
 
 ## Overview
