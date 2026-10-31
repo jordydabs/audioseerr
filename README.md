@@ -1,3 +1,5 @@
+https://github.com/user-attachments/assets/e311c7ce-89c9-4358-93e3-48064f93d8b8
+
 <div align="center">
 
 <img src="public/icon-192.png" alt="AudioSeerr logo" width="96" height="96">
